@@ -4,7 +4,7 @@ services:
   # ── PostgreSQL + Pgvector ──────────────────────────
   postgres:
     image: pgvector/pgvector:pg15
-    container_name: rsod-agent-postgres
+    container_name: name-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: rsod_agent
@@ -81,4 +81,4 @@ volumes:
   postgres_data:
   redis_data:
   minio_data:
-  ollama_data:
+  #ollama_data:
