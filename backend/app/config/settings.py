@@ -19,9 +19,9 @@ class Settings(BaseSettings):
     # ── 数据库配置 ────────────────────────────────────
     DB_HOST: str = "localhost"
     DB_PORT: int = 5432
-    DB_NAME: str = "rsod_agent"
-    DB_USER: str = "rsod_admin"
-    DB_PASSWORD: str = "rsod_admin"
+    DB_NAME: str = "zqs"
+    DB_USER: str = "zqs"
+    DB_PASSWORD: str = "zqs"
 
     @property
     def DATABASE_URL(self) -> str:
@@ -62,6 +62,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"  # 新增这一行，自动忽略.env多余变量
 
 
 # 创建全局单例，其他模块直接 import 使用

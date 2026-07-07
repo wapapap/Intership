@@ -15,7 +15,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U rsod_admin -d rsod_agent"]
+      test: ["CMD-SHELL", "pg_isready -U zqs -d zqs"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -50,7 +50,7 @@ services:
       - minio_data:/data
     command: server /data --console-address ":9001"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9000/minio/health/live"]
+      test: ["CMD-SHELL", "curl -s http://localhost:9000/minio/health/live"]
       interval: 10s
       timeout: 5s
       retries: 3
