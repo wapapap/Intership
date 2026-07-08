@@ -2,8 +2,16 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
 
-export default defineConfig({
-  plugins: [vue()],
+export default defineConfig(({ mode }) => ({
+  plugins: [
+    vue({
+      template: {
+        // test 模式下禁用 asset URL 转换，避免 Windows 上
+        // /favicon.svg 被解析为无效的 file:///favicon.svg
+        transformAssetUrls: mode === 'test' ? false : undefined,
+      },
+    }),
+  ],
 
   // ── 路径别名 ─────────────────────────────────────
   resolve: {
@@ -34,4 +42,18 @@ export default defineConfig({
       },
     },
   },
-})
+
+  test: {
+    // 使用 happy-dom 模拟浏览器环境
+    environment: "happy-dom",
+    // 全局 setup 文件
+    setupFiles: ["./tests/setup.js"],
+    // 测试文件匹配模式
+    include: ["tests/**/*.{test,spec}.{js,ts}"],
+    // 覆盖率（可选）
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html"],
+    },
+  },
+}))
