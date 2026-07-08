@@ -9,12 +9,17 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     """应用全局配置"""
+# 在 Settings 类中添加日志相关配置（已有 LOG_LEVEL，再补充文件配置）
 
+    # ── 日志配置 ──────────────────────────────────────
+    LOG_LEVEL: str = "INFO"           # 已有，日志级别
+    LOG_DIR: str = "logs"             # 日志目录（相对于 backend/）
+    LOG_MAX_BYTES: int = 10 * 1024 * 1024  # 单文件最大 10MB
+    LOG_BACKUP_COUNT: int = 5         # 保留 5 份历史日志
     # ── 应用基础配置 ──────────────────────────────────
     APP_NAME: str = "RSOD Agent Platform"
     APP_VERSION: str = "0.1.0"
     DEBUG: bool = True
-    LOG_LEVEL: str = "INFO"
 
     # ── 数据库配置 ────────────────────────────────────
     DB_HOST: str = "localhost"

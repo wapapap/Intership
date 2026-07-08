@@ -16,12 +16,12 @@ from app.core.security import decode_access_token
 from app.database.session import get_db
 from app.entity.schemas import TokenResponse, UserLogin, UserRegister, UserResponse
 from app.services.user_service import user_service
-
+from app.core.logger import get_logger
 router = APIRouter(prefix="/api/auth", tags=["认证"])
 
 # OAuth2 密码模式，用于从请求 Header 中提取 Token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
-
+logger = get_logger(__name__)
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
@@ -83,7 +83,7 @@ async def login(request: UserLogin, db: Session = Depends(get_db)):
     
     access_token = user_service.create_access_token_for_user(user)
     roles = user_service.get_user_roles(db, user)
-    
+    logger.info("用户%s登陆成功",user.username)
     return {
         "access_token": access_token,
         "token_type": "bearer",

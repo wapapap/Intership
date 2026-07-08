@@ -73,9 +73,8 @@ class UserService:
         if not user:
             raise HTTPException(status_code=401, detail="用户名不存在")
 
-        if not verify_password(password, user.hashed_password):
+        if not verify_password(password, user.hashed_password): # type: ignore
             raise HTTPException(status_code=401, detail="用户名或密码错误")
-
         return user
 
     @staticmethod
