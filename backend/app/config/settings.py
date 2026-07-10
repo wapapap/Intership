@@ -9,6 +9,9 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     """应用全局配置"""
+    # ── 训练配置 ──────────────────────────────────────
+    TRAIN_OUTPUT_DIR: str = "runs/train"  # 训练输出目录（模型权重、日志等）
+    DATASET_BASE_DIR: str = "datasets"    # 数据集根目录
 # 在 Settings 类中添加日志相关配置（已有 LOG_LEVEL，再补充文件配置）
 
     # ── 日志配置 ──────────────────────────────────────

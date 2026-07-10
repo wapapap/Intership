@@ -452,7 +452,8 @@ if __name__ == "__main__":
     # 计算项目根目录（tools/verify_dataset.py → rsod-agent-platform/）
     PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     # 默认数据集目录
-    DATASET_DIR = os.path.join(PROJECT_ROOT, "datasets/PCB")
+    DATASET_DIR = os.path.join(PROJECT_ROOT, "datasets/pcb_defect"
+    "")
 
     # 支持通过命令行参数指定数据集目录
     if len(sys.argv) > 1:

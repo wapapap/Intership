@@ -159,6 +159,7 @@ class SceneResponse(BaseModel):
 
 class DetectionTaskResponse(BaseModel):
     """检测任务响应"""
+    model_config = {"protected_namespaces": (), "from_attributes": True}
     id: int
     user_id: int
     scene_id: int
@@ -174,9 +175,6 @@ class DetectionTaskResponse(BaseModel):
     error_message: Optional[str] = None
     created_at: datetime
     completed_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
 
 
 class DetectionResultResponse(BaseModel):
@@ -226,19 +224,22 @@ class DetectionStatistics(BaseModel):
 
 class TrainingTaskCreate(BaseModel):
     """创建训练任务"""
+    model_config = {"protected_namespaces": ()}
     scene_id: int = Field(..., description="关联场景 ID")
-    model_name: str = Field(default="yolov11n", description="基础模型")
-    epochs: int = Field(default=100, ge=10, le=500, description="训练轮数")
+    model_name: str = Field(default="yolo11n", description="基础模型")
+    epochs: int = Field(default=100, ge=1, le=500, description="训练轮数")
     img_size: int = Field(default=640, description="图像尺寸")
     batch_size: int = Field(default=16, ge=1, le=64, description="批次大小")
     device: str = Field(default="0", description="训练设备")
     optimizer: str = Field(default="SGD", description="优化器")
     lr0: float = Field(default=0.01, description="初始学习率")
     augment_config: Optional[dict] = Field(None, description="数据增强配置")
+    dataset_path: Optional[str] = Field(None, description="数据集路径")
 
 
 class TrainingTaskResponse(BaseModel):
     """训练任务响应"""
+    model_config = {"protected_namespaces": (), "from_attributes": True}
     id: int
     user_id: int
     scene_id: int
@@ -257,9 +258,6 @@ class TrainingTaskResponse(BaseModel):
     created_at: datetime
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
 
 
 class TrainingMetricResponse(BaseModel):
@@ -282,6 +280,7 @@ class TrainingMetricResponse(BaseModel):
 
 class ModelVersionBrief(BaseModel):
     """模型版本简要信息"""
+    model_config = {"protected_namespaces": (), "from_attributes": True}
     id: int
     version: str
     model_name: str
@@ -290,12 +289,10 @@ class ModelVersionBrief(BaseModel):
     is_default: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
 
 class ModelVersionResponse(BaseModel):
     """模型版本详情"""
+    model_config = {"protected_namespaces": (), "from_attributes": True}
     id: int
     scene_id: int
     scene_name: Optional[str] = None
@@ -316,16 +313,14 @@ class ModelVersionResponse(BaseModel):
     is_default: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
 
 class ModelVersionCreate(BaseModel):
     """手动上传模型版本"""
+    model_config = {"protected_namespaces": ()}
     scene_id: int
     version: str = Field(..., description="版本号")
     model_name: str = Field(..., description="模型名称")
-    model_type: str = Field(default="yolov11n", description="模型类型")
+    model_type: str = Field(default="yolo11n", description="模型类型")
     description: Optional[str] = None
 
 

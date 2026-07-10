@@ -213,7 +213,7 @@ class TrainingTask(Base):
     status = Column(String(20), default="pending", comment="状态：pending/running/completed/failed/cancelled")
 
     # 训练配置
-    model_name = Column(String(50), default="yolov11n", comment="基础模型：yolov11n/s/m/l/x")
+    model_name = Column(String(50), default="yolo11n", comment="基础模型：yolo11n/s/m/l/x")
     epochs = Column(Integer, default=100, comment="训练轮数")
     img_size = Column(Integer, default=640, comment="图像尺寸")
     batch_size = Column(Integer, default=16, comment="批次大小")
@@ -284,7 +284,7 @@ class ModelVersion(Base):
 
     version = Column(String(50), nullable=False, comment="版本号，如 v1.0.0")
     model_name = Column(String(100), nullable=False, comment="模型名称")
-    model_type = Column(String(50), default="yolov11n", comment="模型类型：yolov11n/s/m/l/x")
+    model_type = Column(String(50), default="yolo11n", comment="模型类型：yolo11n/s/m/l/x")
     status = Column(String(20), default="active", comment="状态：active/archived/deleted")
 
     # 模型文件

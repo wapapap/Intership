@@ -16,7 +16,7 @@
 import os
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATASET_DIR = os.path.join(PROJECT_ROOT, "datasets")
+DATASET_DIR = os.path.join(PROJECT_ROOT, "datasets/rsod/yolo_dataset")
 
 
 def fix_bbox_coordinates(label_dir):
