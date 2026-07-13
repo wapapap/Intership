@@ -108,6 +108,124 @@
       </el-row>
     </el-card>
 
+    <!-- ── 模型操作栏 ── -->
+    <el-card
+      v-if="selectedTask && selectedTask.status === 'completed'"
+      class="action-card"
+      shadow="never"
+    >
+      <template #header>
+        <div class="card-header">
+          <span>模型操作</span>
+        </div>
+      </template>
+      <el-space wrap>
+        <el-button type="primary" @click="validateModel" :loading="validating">评估模型</el-button>
+        <el-button type="success" @click="showExportDialog = true">导出模型</el-button>
+        <el-button @click="downloadModel">下载权重</el-button>
+        <el-button type="warning" @click="showPredictDialog = true">测试验证</el-button>
+      </el-space>
+    </el-card>
+
+    <!-- ── 评估报告面板 ── -->
+    <el-card v-if="evalReport" class="eval-card" shadow="never">
+      <template #header>
+        <div class="card-header">
+          <span>评估报告 <el-tag size="small" style="margin-left: 8px">{{ evalReport.split === 'val' ? '验证集' : '测试集' }}</el-tag></span>
+        </div>
+      </template>
+      <el-row :gutter="16" class="metric-cards">
+        <el-col :span="6" v-for="item in evalMetricCards" :key="item.label">
+          <el-card shadow="hover" class="metric-item">
+            <div class="metric-value" :style="{ color: item.color }">{{ item.value }}</div>
+            <div class="metric-label">{{ item.label }}</div>
+          </el-card>
+        </el-col>
+      </el-row>
+      <el-table :data="perClassData" stripe style="width: 100%; margin-top: 16px" :row-class-name="tableRowClassName">
+        <el-table-column prop="class_name" label="类别" width="200" />
+        <el-table-column prop="ap50" label="AP@50" width="120">
+          <template #default="{ row }">
+            <span :style="{ color: row.ap50 < 0.5 ? '#f56c6c' : '#67c23a' }">{{ (row.ap50 * 100).toFixed(1) }}%</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="ap50_95" label="AP@50-95" width="120">
+          <template #default="{ row }">{{ (row.ap50_95 * 100).toFixed(1) }}%</template>
+        </el-table-column>
+        <el-table-column label="评价">
+          <template #default="{ row }">
+            <el-tag :type="row.ap50 >= 0.7 ? 'success' : row.ap50 >= 0.5 ? 'warning' : 'danger'" size="small">
+              {{ row.ap50 >= 0.7 ? '优秀' : row.ap50 >= 0.5 ? '良好' : '需改进' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+
+    <!-- ── 导出模型对话框 ── -->
+    <el-dialog v-model="showExportDialog" title="导出模型" width="500px">
+      <el-form :model="exportForm" label-width="100px">
+        <el-form-item label="版本号">
+          <el-input v-model="exportForm.version" placeholder="自动生成（如 v1.0.0）" />
+        </el-form-item>
+        <el-form-item label="版本描述">
+          <el-input v-model="exportForm.description" type="textarea" :rows="3" placeholder="描述本次训练的主要变更..." />
+        </el-form-item>
+        <el-form-item label="设为默认">
+          <el-switch v-model="exportForm.set_default" />
+          <span style="margin-left: 8px; color: #909399; font-size: 12px">设为该场景的默认检测模型</span>
+        </el-form-item>
+        <el-form-item label="上传 MinIO">
+          <el-switch v-model="exportForm.upload_minio" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showExportDialog = false">取消</el-button>
+        <el-button type="primary" @click="exportModel" :loading="exporting">确认导出</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- ── 测试图验证对话框 ── -->
+    <el-dialog v-model="showPredictDialog" title="测试图验证" width="900px">
+      <el-row :gutter="16">
+        <el-col :span="10">
+          <el-upload class="predict-upload" drag action="" :auto-upload="false" :on-change="handlePredictFileChange" accept="image/*" :limit="1">
+            <el-icon style="font-size: 40px; color: #909399"><UploadFilled /></el-icon>
+            <div>拖拽图片到此处，或 <em>点击上传</em></div>
+            <template #tip><div class="el-upload__tip">支持 JPG/PNG/BMP 格式</div></template>
+          </el-upload>
+          <el-form label-width="80px" style="margin-top: 16px">
+            <el-form-item label="置信度">
+              <el-slider v-model="predictConf" :min="0.05" :max="0.95" :step="0.05" show-input />
+            </el-form-item>
+            <el-form-item label="IoU">
+              <el-slider v-model="predictIou" :min="0.1" :max="0.9" :step="0.05" show-input />
+            </el-form-item>
+          </el-form>
+          <el-button type="primary" style="width: 100%; margin-top: 8px" @click="runPredict" :loading="predicting" :disabled="!predictFile">开始检测</el-button>
+        </el-col>
+        <el-col :span="14">
+          <div v-if="predictResult">
+            <img :src="`data:image/jpeg;base64,${predictResult.annotated_image}`" style="width: 100%; border-radius: 8px; margin-bottom: 12px" />
+            <el-descriptions :column="2" border size="small">
+              <el-descriptions-item label="检测目标数">{{ predictResult.total_objects }}</el-descriptions-item>
+              <el-descriptions-item label="推理耗时">{{ predictResult.inference_time }}ms</el-descriptions-item>
+            </el-descriptions>
+            <el-table :data="predictResult.detections" stripe size="small" style="margin-top: 8px; max-height: 200px">
+              <el-table-column prop="class_name" label="类别" width="120" />
+              <el-table-column label="置信度" width="100">
+                <template #default="{ row }">{{ (row.confidence * 100).toFixed(1) }}%</template>
+              </el-table-column>
+              <el-table-column label="位置">
+                <template #default="{ row }">[{{ row.bbox.map((v) => v.toFixed(0)).join(', ') }}]</template>
+              </el-table-column>
+            </el-table>
+          </div>
+          <el-empty v-else description="上传图片并点击检测" />
+        </el-col>
+      </el-row>
+    </el-dialog>
+
     <!-- ── 新建训练任务对话框 ── -->
     <el-dialog
       v-model="showCreateDialog"
@@ -191,7 +309,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Refresh } from '@element-plus/icons-vue'
+import { Plus, Refresh, UploadFilled } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import request from '@/utils/request'
 
@@ -428,6 +546,123 @@ function stopPolling() {
   }
 }
 
+// ── 评估相关状态 ──
+const evalReport = ref(null)
+const validating = ref(false)
+
+// ── 导出相关状态 ──
+const showExportDialog = ref(false)
+const exporting = ref(false)
+const exportForm = ref({ version: '', description: '', set_default: true, upload_minio: true })
+
+// ── 测试验证相关状态 ──
+const showPredictDialog = ref(false)
+const predicting = ref(false)
+const predictFile = ref(null)
+const predictConf = ref(0.25)
+const predictIou = ref(0.45)
+const predictResult = ref(null)
+
+// ── 评估报告指标卡片 ──
+const evalMetricCards = computed(() => {
+  if (!evalReport.value) return []
+  const o = evalReport.value.overall
+  return [
+    { label: 'Precision', value: (o.precision * 100).toFixed(1) + '%', color: o.precision > 0.7 ? '#67c23a' : '#e6a23c' },
+    { label: 'Recall', value: (o.recall * 100).toFixed(1) + '%', color: o.recall > 0.7 ? '#67c23a' : '#e6a23c' },
+    { label: 'mAP@50', value: (o.map50 * 100).toFixed(1) + '%', color: o.map50 > 0.5 ? '#67c23a' : '#f56c6c' },
+    { label: 'mAP@50-95', value: (o.map50_95 * 100).toFixed(1) + '%', color: o.map50_95 > 0.3 ? '#67c23a' : '#f56c6c' },
+  ]
+})
+
+const perClassData = computed(() => {
+  if (!evalReport.value || !evalReport.value.per_class) return []
+  return Object.entries(evalReport.value.per_class)
+    .map(([name, m]) => ({ class_name: name, ap50: m.ap50, ap50_95: m.ap50_95 }))
+    .sort((a, b) => b.ap50 - a.ap50)
+})
+
+function tableRowClassName({ row }) {
+  return row.ap50 < 0.5 ? 'weak-row' : ''
+}
+
+async function validateModel() {
+  if (!selectedTask.value) return
+  validating.value = true
+  try {
+    const taskId = selectedTask.value.id || selectedTask.value.task?.id
+    const res = await request.post(`/training/validate/${taskId}`, { split: 'val', conf: 0.001, iou: 0.6 }, { timeout: 300000 })
+    evalReport.value = res
+    ElMessage.success(`评估完成: mAP50=${(res.overall.map50 * 100).toFixed(1)}%`)
+  } catch (e) {
+    // handled by interceptor
+  } finally {
+    validating.value = false
+  }
+}
+
+async function exportModel() {
+  if (!selectedTask.value) return
+  exporting.value = true
+  try {
+    const taskId = selectedTask.value.id || selectedTask.value.task?.id
+    const res = await request.post(`/training/export/${taskId}`, exportForm.value)
+    ElMessage.success(res.message || '模型导出成功')
+    showExportDialog.value = false
+  } catch (e) {
+    // handled by interceptor
+  } finally {
+    exporting.value = false
+  }
+}
+
+async function downloadModel() {
+  if (!selectedTask.value) return
+  try {
+    const taskId = selectedTask.value.id || selectedTask.value.task?.id
+    const token = localStorage.getItem('rsod_token') || ''
+    const response = await fetch(`/api/training/download/${taskId}`, { headers: { Authorization: `Bearer ${token}` } })
+    if (!response.ok) throw new Error('下载失败')
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `best_${selectedTask.value.task_uuid}.pt`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    window.URL.revokeObjectURL(url)
+    ElMessage.success('模型下载已开始')
+  } catch (e) {
+    ElMessage.error('模型下载失败')
+  }
+}
+
+function handlePredictFileChange(file) {
+  predictFile.value = file.raw
+  predictResult.value = null
+}
+
+async function runPredict() {
+  if (!predictFile.value || !selectedTask.value) return
+  predicting.value = true
+  try {
+    const taskId = selectedTask.value.id || selectedTask.value.task?.id
+    const formData = new FormData()
+    formData.append('file', predictFile.value)
+    formData.append('task_id', taskId)
+    formData.append('conf', predictConf.value)
+    formData.append('iou', predictIou.value)
+    const res = await request.post('/training/predict', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+    predictResult.value = res
+    ElMessage.success(`检测完成: 发现 ${res.total_objects} 个目标`)
+  } catch (e) {
+    // handled by interceptor
+  } finally {
+    predicting.value = false
+  }
+}
+
 // ── 创建训练任务 ──
 async function createTask() {
   creating.value = true
@@ -530,5 +765,27 @@ onBeforeUnmount(() => {
 .task-list-card,
 .monitor-card {
   margin-bottom: 20px;
+}
+
+.action-card,
+.eval-card {
+  margin-bottom: 20px;
+}
+
+.predict-upload {
+  width: 100%;
+}
+
+.predict-upload :deep(.el-upload-dragger) {
+  width: 100%;
+  padding: 20px;
+}
+
+:deep(.weak-row) {
+  background-color: #fef0f0 !important;
+}
+
+:deep(.weak-row td) {
+  color: #f56c6c !important;
 }
 </style>
